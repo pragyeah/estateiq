@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import SignupForm from "@/components/auth/signup-form"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
