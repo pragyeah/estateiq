@@ -22,7 +22,7 @@ export default async function SignupPage() {
           <h1 className="text-3xl font-bold">EstateIQ</h1>
           <p className="mt-2 text-muted-foreground">Create your account</p>
         </div>
-        <SignupForm />
+        <SignupForm/>
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:underline">
