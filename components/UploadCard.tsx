@@ -3,7 +3,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { FileUploader } from "@/components/FileUploader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
@@ -22,7 +22,7 @@ type UploadRow = {
 export function UploadCard({ userId }: UploadCardProps) {
   const [recentUploads, setRecentUploads] = useState<UploadRow[]>([])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const supabase = createClient()
     const { data } = await supabase
       .from("uploads")
@@ -32,11 +32,11 @@ export function UploadCard({ userId }: UploadCardProps) {
       .limit(5)
 
     setRecentUploads(data ?? [])
-  }
+  }, [userId])
 
   useEffect(() => {
     void refresh()
-  }, [])
+  }, [refresh])
 
   return (
     <Card>
