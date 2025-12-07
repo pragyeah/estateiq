@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
@@ -35,9 +35,8 @@ export function RunAnalysisCard({ userId }: RunAnalysisCardProps) {
   const [noCredits, setNoCredits] = useState(false)
   const [credits, setCredits] = useState<number | null>(null)
 
-  const supabase = createClient()
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    const supabase = createClient()
     const [{ data: props }, { data: billing }] = await Promise.all([
       supabase
         .from("properties")
@@ -49,14 +48,17 @@ export function RunAnalysisCard({ userId }: RunAnalysisCardProps) {
 
     setProperties(props ?? [])
     setCredits(billing?.credits ?? 20)
-    if (!selectedId && props && props.length) {
-      setSelectedId(props[0].id)
-    }
-  }
+    setSelectedId((current) => {
+      if (!current && props && props.length) {
+        return props[0].id
+      }
+      return current
+    })
+  }, [userId])
 
   useEffect(() => {
     void loadData()
-  }, [])
+  }, [loadData])
 
   const handleRun = async () => {
     if (!selectedId) return
