@@ -21,23 +21,45 @@ export default function LoginForm() {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      // Provide more helpful error messages
-      if (error.message.includes("Invalid login credentials") || error.message.includes("Email not confirmed")) {
-        setError("Invalid credentials. Please check your email and password, or verify your email address if you just signed up.")
-      } else {
-        setError(error.message)
+    try {
+      // Check if Supabase URL and key are configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        setError("Supabase is not configured. Please check your environment variables.")
+        setIsLoading(false)
+        return
       }
+
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        console.error("Login error:", error)
+        // Provide more helpful error messages
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials.")
+        } else if (error.message.includes("Email not confirmed") || error.message.includes("email_not_confirmed")) {
+          setError("Please verify your email address. Check your inbox for a confirmation link.")
+        } else if (error.message.includes("Too many requests")) {
+          setError("Too many login attempts. Please wait a moment and try again.")
+        } else {
+          setError(error.message || "Failed to sign in. Please try again.")
+        }
+        setIsLoading(false)
+      } else if (data?.user) {
+        // Successfully signed in
+        router.push("/dashboard")
+        router.refresh()
+      } else {
+        setError("Unexpected error. Please try again.")
+        setIsLoading(false)
+      }
+    } catch (err) {
+      console.error("Login exception:", err)
+      setError("An unexpected error occurred. Please check the browser console for details.")
       setIsLoading(false)
-    } else {
-      router.push("/dashboard")
-      router.refresh()
     }
   }
 

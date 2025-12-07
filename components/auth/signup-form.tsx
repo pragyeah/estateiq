@@ -34,29 +34,52 @@ export default function SignupForm() {
       return
     }
 
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    })
-
-    if (error) {
-      setError(error.message)
-      setIsLoading(false)
-    } else {
-      // Check if email confirmation is required
-      if (data.user && !data.session) {
-        // Email confirmation required
-        setNeedsConfirmation(true)
+    try {
+      // Check if Supabase URL and key are configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        setError("Supabase is not configured. Please check your environment variables.")
         setIsLoading(false)
-      } else if (data.session) {
-        // User is immediately signed in (email confirmation disabled)
-        router.push("/dashboard")
-        router.refresh()
+        return
       }
+
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      })
+
+      if (error) {
+        console.error("Signup error:", error)
+        if (error.message.includes("User already registered")) {
+          setError("An account with this email already exists. Please sign in instead.")
+        } else if (error.message.includes("Password")) {
+          setError("Password is too weak. Please use a stronger password.")
+        } else {
+          setError(error.message || "Failed to create account. Please try again.")
+        }
+        setIsLoading(false)
+      } else {
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+          // Email confirmation required
+          setNeedsConfirmation(true)
+          setIsLoading(false)
+        } else if (data.session) {
+          // User is immediately signed in (email confirmation disabled)
+          router.push("/dashboard")
+          router.refresh()
+        } else {
+          setError("Unexpected response. Please try again.")
+          setIsLoading(false)
+        }
+      }
+    } catch (err) {
+      console.error("Signup exception:", err)
+      setError("An unexpected error occurred. Please check the browser console for details.")
+      setIsLoading(false)
     }
   }
 
