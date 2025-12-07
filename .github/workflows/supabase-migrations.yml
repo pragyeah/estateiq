@@ -9,8 +9,6 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    # Skip if secret is not set
-    if: ${{ secrets.SUPABASE_DB_URL != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,29 +17,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
+      - name: Check for database URL secret
+        id: check_secret
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "⚠️ SUPABASE_DB_URL secret is not set. Migration skipped."
+            echo ""
+            echo "To enable automatic migrations:"
+            echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "2. Click 'New repository secret'"
+            echo "3. Name: SUPABASE_DB_URL"
+            echo "4. Value: Get from Supabase Dashboard → Settings → Database → Connection string (URI mode)"
+            echo "   Format: postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+            echo ""
+            echo "Note: You can also run migrations manually in Supabase SQL Editor."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ SUPABASE_DB_URL secret is set"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run migrations
+        if: steps.check_secret.outputs.skip != 'true'
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           echo "Running database migrations..."
           psql "$SUPABASE_DB_URL" -f migrations/001_init.sql
           echo "✅ Migration completed successfully!"
-
-  # Job that runs when secret is missing to provide helpful message
-  skip-migration:
-    runs-on: ubuntu-latest
-    if: ${{ secrets.SUPABASE_DB_URL == '' }}
-    steps:
-      - name: Migration skipped - Secret not configured
-        run: |
-          echo "⚠️ SUPABASE_DB_URL secret is not set. Migration skipped."
-          echo ""
-          echo "To enable automatic migrations:"
-          echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
-          echo "2. Click 'New repository secret'"
-          echo "3. Name: SUPABASE_DB_URL"
-          echo "4. Value: Get from Supabase Dashboard → Settings → Database → Connection string (URI mode)"
-          echo "   Format: postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-          echo ""
-          echo "Note: You can also run migrations manually in Supabase SQL Editor."
 
