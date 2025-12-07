@@ -22,14 +22,12 @@ export default function LoginForm() {
     setError(null)
 
     try {
-      // Check if Supabase URL and key are configured
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        setError("Supabase is not configured. Please check your environment variables.")
-        setIsLoading(false)
-        return
-      }
+      console.log('Attempting login with email:', email)
+      console.log('Supabase URL configured:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('Supabase Key configured:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
       const supabase = createClient()
+      console.log('Supabase client created successfully')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -68,19 +66,30 @@ export default function LoginForm() {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    })
+    try {
+      console.log('Attempting magic link for email:', email)
+      const supabase = createClient()
+      console.log('Supabase client created for magic link')
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
-      setIsLoading(false)
-    } else {
-      setIsMagicLink(true)
+      if (error) {
+        console.error("Magic link error:", error)
+        setError(error.message || "Failed to send magic link. Please try again.")
+        setIsLoading(false)
+      } else {
+        console.log('Magic link sent successfully')
+        setIsMagicLink(true)
+        setIsLoading(false)
+      }
+    } catch (err) {
+      console.error("Magic link exception:", err)
+      setError("An unexpected error occurred. Please check the browser console for details.")
       setIsLoading(false)
     }
   }
